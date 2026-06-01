@@ -27,3 +27,26 @@ class ChatResponse(BaseModel):
     response: str
     timestamp: str
     model: Optional[str] = None
+
+
+# ── Council (parallel multi-persona) ──
+
+class CouncilMessage(BaseModel):
+    message: str
+    persona_ids: Optional[List[str]] = None  # None = all personas
+
+
+class CouncilVoice(BaseModel):
+    persona_id: str
+    persona_name: str
+    emoji: Optional[str] = "🤖"
+    role: str
+    response: str
+    error: Optional[str] = None
+
+
+class CouncilResponse(BaseModel):
+    message: str
+    voices: List[CouncilVoice]
+    timestamp: str
+    model: Optional[str] = None

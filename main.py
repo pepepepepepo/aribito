@@ -6,6 +6,7 @@ Endpoints:
   GET  /health           — liveness check
   GET  /api/personas     — list all personas
   POST /api/chat         — chat with a persona (Ollama backend)
+  POST /api/council      — all personas respond in parallel
 
 Requirements: Ollama running locally with a model available.
 Default model: gemma3:4b (change via OLLAMA_MODEL env var)
@@ -13,6 +14,7 @@ Default model: gemma3:4b (change via OLLAMA_MODEL env var)
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List
+import asyncio
 import os
 
 import httpx
@@ -20,7 +22,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from models import PersonaInfo, ChatMessage, ChatResponse
+from models import PersonaInfo, ChatMessage, ChatResponse, CouncilMessage, CouncilResponse, CouncilVoice
 from core.persona_loader import list_personas, get_persona, build_system_prompt
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
@@ -99,6 +101,73 @@ async def chat(msg: ChatMessage):
         persona_name=data.get("name", ""),
         emoji=data.get("emoji", "🤖"),
         response=reply,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        model=model_used,
+    )
+
+
+@app.post("/api/council", response_model=CouncilResponse)
+async def council(req: CouncilMessage):
+    """Send the same message to multiple personas in parallel via asyncio.gather."""
+    all_personas = list_personas()
+
+    if req.persona_ids:
+        targets = [p for p in all_personas if p.id in req.persona_ids]
+    else:
+        targets = all_personas
+
+    if not targets:
+        raise HTTPException(status_code=404, detail="No matching personas found")
+
+    async def ask_one(persona_info: PersonaInfo) -> CouncilVoice:
+        pid = persona_info.id
+        data = get_persona(pid)
+        if data is None:
+            return CouncilVoice(
+                persona_id=pid,
+                persona_name=persona_info.name,
+                emoji=persona_info.emoji,
+                role=persona_info.role,
+                response="",
+                error="Persona data not found",
+            )
+        system_prompt = build_system_prompt(data)
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": req.message},
+        ]
+        try:
+            async with httpx.AsyncClient(timeout=90.0) as client:
+                resp = await client.post(
+                    f"{OLLAMA_URL}/api/chat",
+                    json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
+                )
+                resp.raise_for_status()
+                result = resp.json()
+            reply = result.get("message", {}).get("content", "")
+            return CouncilVoice(
+                persona_id=pid,
+                persona_name=data.get("name", ""),
+                emoji=data.get("emoji", "🤖"),
+                role=data.get("role", ""),
+                response=reply,
+            )
+        except Exception as e:
+            return CouncilVoice(
+                persona_id=pid,
+                persona_name=data.get("name", pid),
+                emoji=data.get("emoji", "🤖"),
+                role=data.get("role", ""),
+                response="",
+                error=str(e),
+            )
+
+    voices = await asyncio.gather(*[ask_one(p) for p in targets])
+    model_used = OLLAMA_MODEL
+
+    return CouncilResponse(
+        message=req.message,
+        voices=list(voices),
         timestamp=datetime.now(timezone.utc).isoformat(),
         model=model_used,
     )

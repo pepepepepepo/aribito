@@ -14,6 +14,7 @@
     --text: #e8e8f0;
     --text-dim: #8888a0;
     --accent: #7c6eff;
+    --accent2: #e88c6e;
     --bubble-user: #24243a;
     --bubble-ai: #1a1a28;
     --radius: 12px;
@@ -33,282 +34,256 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 14px 20px;
+    padding: 10px 20px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
     flex-shrink: 0;
   }
-  header h1 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-  }
-  header span.tagline {
-    font-size: 0.78rem;
+  header h1 { font-size: 1.05rem; font-weight: 600; letter-spacing: 0.04em; }
+  header span.tagline { font-size: 0.78rem; color: var(--text-dim); margin-left: 4px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf93; flex-shrink: 0; }
+
+  /* ── Mode tabs ── */
+  .tabs { display: flex; gap: 4px; margin-left: auto; margin-right: 12px; }
+  .tab-btn {
+    background: none;
+    border: 1px solid var(--border);
     color: var(--text-dim);
-    margin-left: 4px;
+    border-radius: 8px;
+    padding: 5px 14px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
   }
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #4caf93;
-    margin-left: auto;
-    flex-shrink: 0;
-  }
+  .tab-btn:hover { color: var(--text); border-color: #444; }
+  .tab-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tab-btn.council-tab.active { background: var(--accent2); border-color: var(--accent2); }
 
   /* ── Main layout ── */
-  main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-  }
+  main { display: flex; flex: 1; overflow: hidden; }
 
   /* ── Persona sidebar ── */
   aside {
-    width: 200px;
-    flex-shrink: 0;
+    width: 190px; flex-shrink: 0;
     border-right: 1px solid var(--border);
-    padding: 16px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    padding: 14px 10px;
+    display: flex; flex-direction: column; gap: 6px;
     overflow-y: auto;
     background: var(--surface);
   }
-  aside h2 {
-    font-size: 0.72rem;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0 6px;
-    margin-bottom: 4px;
-  }
-
+  aside h2 { font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 6px; margin-bottom: 4px; }
   .persona-card {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 10px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px;
     border-radius: var(--radius);
     cursor: pointer;
     border: 1px solid transparent;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.12s, border-color 0.12s;
+    user-select: none;
   }
   .persona-card:hover { background: #1f1f2e; }
-  .persona-card.active {
-    background: #1f1f36;
-    border-color: var(--accent);
-  }
-  .persona-emoji { font-size: 1.5rem; flex-shrink: 0; }
+  .persona-card.active { background: #1f1f36; border-color: var(--accent); }
+  .persona-card.council-card.selected { background: #1f1e2c; border-color: var(--accent2); }
+  .persona-emoji { font-size: 1.4rem; flex-shrink: 0; }
   .persona-info { min-width: 0; }
-  .persona-name { font-size: 0.88rem; font-weight: 600; }
-  .persona-role { font-size: 0.72rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .persona-name { font-size: 0.86rem; font-weight: 600; }
+  .persona-role { font-size: 0.7rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .check-badge { margin-left: auto; font-size: 0.78rem; opacity: 0; transition: opacity 0.12s; color: var(--accent2); flex-shrink: 0; }
+  .persona-card.selected .check-badge { opacity: 1; }
+  .sidebar-hint { font-size: 0.68rem; color: var(--text-dim); padding: 6px 6px; line-height: 1.5; }
 
-  /* ── Chat area ── */
-  section.chat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
+  /* ── Content area ── */
+  section.content { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 
-  /* Persona header bar */
+  /* ── CHAT MODE ── */
+  #chatMode { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
   .chat-header {
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-    background: var(--surface);
+    padding: 11px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0; background: var(--surface);
   }
-  .chat-header .emoji { font-size: 1.6rem; }
-  .chat-header .name { font-size: 1rem; font-weight: 600; }
-  .chat-header .role { font-size: 0.78rem; color: var(--text-dim); }
-  .chat-header .desc { font-size: 0.78rem; color: var(--text-dim); margin-left: auto; max-width: 300px; text-align: right; font-style: italic; }
+  .chat-header .emoji { font-size: 1.5rem; }
+  .chat-header .name  { font-size: 0.98rem; font-weight: 600; }
+  .chat-header .role  { font-size: 0.76rem; color: var(--text-dim); }
+  .chat-header .desc  { font-size: 0.76rem; color: var(--text-dim); margin-left: auto; max-width: 280px; text-align: right; font-style: italic; }
 
-  /* Messages */
   .messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
     scroll-behavior: smooth;
   }
-  .messages::-webkit-scrollbar { width: 6px; }
-  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar { width: 5px; }
   .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   .msg { display: flex; flex-direction: column; max-width: 72%; }
   .msg.user { align-self: flex-end; align-items: flex-end; }
   .msg.ai   { align-self: flex-start; align-items: flex-start; }
-
-  .msg-label {
-    font-size: 0.68rem;
-    color: var(--text-dim);
-    margin-bottom: 3px;
-    padding: 0 4px;
-  }
-
-  .bubble {
-    padding: 10px 14px;
-    border-radius: var(--radius);
-    font-size: 0.92rem;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
+  .msg-label { font-size: 0.68rem; color: var(--text-dim); margin-bottom: 3px; padding: 0 4px; }
+  .bubble { padding: 10px 14px; border-radius: var(--radius); font-size: 0.91rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
   .msg.user .bubble { background: var(--bubble-user); border: 1px solid var(--border); }
   .msg.ai   .bubble { background: var(--bubble-ai);   border: 1px solid var(--border); }
 
-  /* Typing indicator */
-  .typing {
-    align-self: flex-start;
-    padding: 12px 16px;
-    background: var(--bubble-ai);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    display: flex;
-    gap: 5px;
-    align-items: center;
+  .welcome {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--text-dim); gap: 8px; padding: 40px; text-align: center;
   }
-  .typing span {
-    width: 6px; height: 6px;
-    background: var(--text-dim);
-    border-radius: 50%;
-    animation: bounce 1.2s infinite;
+  .welcome .big { font-size: 2.4rem; margin-bottom: 8px; }
+  .welcome h2 { font-size: 1.05rem; color: var(--text); }
+  .welcome p  { font-size: 0.83rem; max-width: 300px; line-height: 1.6; }
+
+  /* ── COUNCIL MODE ── */
+  #councilMode { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+  .council-header {
+    padding: 11px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0; background: var(--surface);
   }
+  .council-header h2 { font-size: 0.95rem; font-weight: 600; }
+  .council-header .hint { font-size: 0.76rem; color: var(--text-dim); }
+  .council-rounds { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 0.76rem; color: var(--text-dim); }
+  .council-rounds span { color: var(--text); font-weight: 600; }
+
+  .council-log {
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 24px;
+    scroll-behavior: smooth;
+  }
+  .council-log::-webkit-scrollbar { width: 5px; }
+  .council-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .council-round { display: flex; flex-direction: column; gap: 12px; }
+  .council-question { align-self: flex-end; max-width: 70%; background: var(--bubble-user); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 14px; font-size: 0.91rem; line-height: 1.5; }
+  .council-question-label { align-self: flex-end; font-size: 0.68rem; color: var(--text-dim); margin-bottom: 2px; padding-right: 4px; }
+
+  .council-voices { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .voice-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 8px; transition: border-color 0.2s; }
+  .voice-card.loaded { border-color: #3a3a4e; }
+  .voice-card.error-card { border-color: #c0392b44; opacity: 0.7; }
+  .voice-card-header { display: flex; align-items: center; gap: 8px; }
+  .voice-emoji { font-size: 1.3rem; }
+  .voice-name  { font-size: 0.88rem; font-weight: 600; }
+  .voice-role  { font-size: 0.7rem; color: var(--text-dim); }
+  .voice-body  { font-size: 0.88rem; line-height: 1.65; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  .voice-error { font-size: 0.8rem; color: var(--accent2); }
+
+  .voice-skeleton { height: 14px; background: linear-gradient(90deg, var(--border) 25%, #333348 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 4px; margin-bottom: 6px; }
+  .voice-skeleton:last-child { width: 60%; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .council-welcome {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; color: var(--text-dim); padding: 40px; text-align: center;
+  }
+  .council-welcome .big { font-size: 2.2rem; margin-bottom: 8px; }
+  .council-welcome h2 { font-size: 1.05rem; color: var(--text); }
+  .council-welcome p  { font-size: 0.83rem; max-width: 320px; line-height: 1.65; }
+  .council-welcome ul { list-style: none; font-size: 0.83rem; display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .council-welcome ul li::before { content: '— '; color: var(--accent2); }
+
+  /* ── Typing ── */
+  .typing { align-self: flex-start; padding: 11px 15px; background: var(--bubble-ai); border: 1px solid var(--border); border-radius: var(--radius); display: flex; gap: 5px; align-items: center; }
+  .typing span { width: 6px; height: 6px; background: var(--text-dim); border-radius: 50%; animation: bounce 1.2s infinite; }
   .typing span:nth-child(2) { animation-delay: 0.2s; }
   .typing span:nth-child(3) { animation-delay: 0.4s; }
-  @keyframes bounce {
-    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-    40% { transform: translateY(-5px); opacity: 1; }
-  }
+  @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-5px); opacity: 1; } }
 
-  /* Welcome state */
-  .welcome {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-dim);
-    gap: 8px;
-    padding: 40px;
-    text-align: center;
-  }
-  .welcome .big { font-size: 2.5rem; margin-bottom: 8px; }
-  .welcome h2 { font-size: 1.1rem; color: var(--text); }
-  .welcome p { font-size: 0.85rem; max-width: 320px; line-height: 1.6; }
-
-  /* Input bar */
-  .input-bar {
-    display: flex;
-    gap: 10px;
-    padding: 14px 20px;
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-  }
+  /* ── Input bar ── */
+  .input-bar { display: flex; gap: 10px; padding: 13px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
   .input-bar textarea {
-    flex: 1;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
-    font-size: 0.92rem;
-    font-family: inherit;
-    padding: 10px 14px;
-    resize: none;
-    outline: none;
-    min-height: 44px;
-    max-height: 140px;
-    line-height: 1.5;
-    transition: border-color 0.15s;
+    flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); font-size: 0.91rem; font-family: inherit; padding: 10px 14px;
+    resize: none; outline: none; min-height: 44px; max-height: 140px; line-height: 1.5; transition: border-color 0.15s;
   }
   .input-bar textarea:focus { border-color: var(--accent); }
+  .input-bar textarea.council-input:focus { border-color: var(--accent2); }
   .input-bar textarea::placeholder { color: var(--text-dim); }
   .input-bar button {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: var(--radius);
-    width: 44px;
-    height: 44px;
-    cursor: pointer;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-    align-self: flex-end;
-    transition: opacity 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: var(--accent); color: #fff; border: none; border-radius: var(--radius);
+    width: 44px; height: 44px; cursor: pointer; flex-shrink: 0; align-self: flex-end;
+    transition: opacity 0.15s; display: flex; align-items: center; justify-content: center;
   }
   .input-bar button:hover { opacity: 0.85; }
-  .input-bar button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .input-bar button:disabled { opacity: 0.38; cursor: not-allowed; }
+  .input-bar button.council-send { background: var(--accent2); }
 
-  /* Error toast */
-  .toast {
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #c0392b;
-    color: #fff;
-    padding: 8px 18px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    z-index: 100;
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-  }
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #c0392b; color: #fff; padding: 8px 18px; border-radius: 8px; font-size: 0.84rem; z-index: 100; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
   .toast.show { opacity: 1; }
 
-  /* Responsive */
+  /* ── Responsive ── */
   @media (max-width: 600px) {
-    aside { width: 64px; }
-    aside h2, .persona-info { display: none; }
-    .persona-emoji { font-size: 1.4rem; }
+    aside { width: 60px; }
+    aside h2, .persona-info, .sidebar-hint { display: none; }
+    .persona-emoji { font-size: 1.35rem; }
     .persona-card { justify-content: center; }
     .chat-header .desc { display: none; }
+    .tab-btn { padding: 4px 10px; font-size: 0.76rem; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <span style="font-size:1.3rem;">🌐</span>
+  <span style="font-size:1.25rem;">🌐</span>
   <h1>在人 <span class="tagline">— Aribito</span></h1>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabChat" onclick="switchMode('chat')">Chat</button>
+    <button class="tab-btn council-tab" id="tabCouncil" onclick="switchMode('council')">Council ✦</button>
+  </div>
   <div class="status-dot" id="statusDot" title="Connecting..."></div>
 </header>
 
 <main>
   <aside id="sidebar">
-    <h2>Personas</h2>
-    <div id="personaList"><!-- filled by JS --></div>
+    <h2 id="sidebarLabel">Personas</h2>
+    <div id="personaList"></div>
+    <div class="sidebar-hint" id="sidebarHint" style="display:none;">Select one or more for the council.</div>
   </aside>
 
-  <section class="chat" id="chatSection">
-    <!-- Welcome -->
-    <div class="welcome" id="welcomeScreen">
-      <div class="big">✦</div>
-      <h2>Select a persona</h2>
-      <p>Choose someone to talk with from the left panel.</p>
-    </div>
-    <!-- Chat view (hidden until persona selected) -->
-    <div id="chatView" style="display:none; flex:1; display:none; flex-direction:column; min-height:0;">
-      <div class="chat-header" id="chatHeader">
-        <span class="emoji" id="activeEmoji"></span>
-        <div>
-          <div class="name" id="activeName"></div>
-          <div class="role" id="activeRole"></div>
-        </div>
-        <span class="desc" id="activeDesc"></span>
+  <section class="content">
+    <!-- CHAT MODE -->
+    <div id="chatMode">
+      <div class="welcome" id="chatWelcome">
+        <div class="big">✦</div>
+        <h2>Select a persona</h2>
+        <p>Choose someone to talk with from the left panel.</p>
       </div>
-      <div class="messages" id="messages"></div>
+      <div id="chatView" style="display:none; flex-direction:column; flex:1; min-height:0;">
+        <div class="chat-header">
+          <span class="emoji" id="activeEmoji"></span>
+          <div>
+            <div class="name" id="activeName"></div>
+            <div class="role" id="activeRole"></div>
+          </div>
+          <span class="desc" id="activeDesc"></span>
+        </div>
+        <div class="messages" id="messages"></div>
+      </div>
+    </div>
+
+    <!-- COUNCIL MODE -->
+    <div id="councilMode">
+      <div class="council-header">
+        <span style="font-size:1.2rem;">✦</span>
+        <div>
+          <h2>Council</h2>
+          <span class="hint">All selected personas respond in parallel</span>
+        </div>
+        <div class="council-rounds">Rounds: <span id="roundCount">0</span></div>
+      </div>
+      <div class="council-log" id="councilLog">
+        <div class="council-welcome" id="councilWelcome">
+          <div class="big">✦</div>
+          <h2>Council mode</h2>
+          <p>Ask anything — everyone responds at the same time.</p>
+          <ul>
+            <li>Plan something together</li>
+            <li>Get multiple perspectives</li>
+            <li>Divide a task into pieces</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
 </main>
@@ -316,7 +291,7 @@
 <div class="input-bar">
   <textarea id="input" placeholder="Type a message… (Enter to send, Shift+Enter for newline)" rows="1" disabled></textarea>
   <button id="sendBtn" disabled>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
     </svg>
   </button>
@@ -325,22 +300,32 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API = '';  // same origin
+const API = '';
+let mode = 'chat';
+let allPersonas = [];
 let activePersona = null;
-let history = [];   // [{role, content}]
-let sending = false;
+let chatHistory = [];
+let councilSelected = new Set();
+let councilSending = false;
+let chatSending = false;
+let roundCount = 0;
 
-// ── Elements ──
-const personaList  = document.getElementById('personaList');
-const welcomeScreen = document.getElementById('welcomeScreen');
-const chatView     = document.getElementById('chatView');
-const messagesEl   = document.getElementById('messages');
-const inputEl      = document.getElementById('input');
-const sendBtn      = document.getElementById('sendBtn');
-const statusDot    = document.getElementById('statusDot');
-const toast        = document.getElementById('toast');
+const personaListEl  = document.getElementById('personaList');
+const sidebarHint    = document.getElementById('sidebarHint');
+const sidebarLabel   = document.getElementById('sidebarLabel');
+const chatWelcome    = document.getElementById('chatWelcome');
+const chatViewEl     = document.getElementById('chatView');
+const messagesEl     = document.getElementById('messages');
+const councilLogEl   = document.getElementById('councilLog');
+const councilWelcome = document.getElementById('councilWelcome');
+const roundCountEl   = document.getElementById('roundCount');
+const inputEl        = document.getElementById('input');
+const sendBtn        = document.getElementById('sendBtn');
+const statusDot      = document.getElementById('statusDot');
+const toast          = document.getElementById('toast');
+const chatModeEl     = document.getElementById('chatMode');
+const councilModeEl  = document.getElementById('councilMode');
 
-// ── Init ──
 async function init() {
   try {
     const r = await fetch(`${API}/health`);
@@ -350,7 +335,7 @@ async function init() {
   } catch {
     statusDot.style.background = '#c0392b';
     statusDot.title = 'Server offline';
-    showToast('⚠ Cannot reach Aribito server (localhost:8001)');
+    showToast('⚠ Cannot reach Aribito server');
   }
   await loadPersonas();
 }
@@ -358,72 +343,117 @@ async function init() {
 async function loadPersonas() {
   try {
     const r = await fetch(`${API}/api/personas`);
-    const personas = await r.json();
-    renderSidebar(personas);
-  } catch (e) {
+    allPersonas = await r.json();
+    allPersonas.forEach(p => councilSelected.add(p.id)); // default: all selected
+    renderSidebar();
+  } catch {
     showToast('Failed to load personas');
   }
 }
 
-function renderSidebar(personas) {
-  personaList.innerHTML = '';
-  personas.forEach(p => {
-    const card = document.createElement('div');
-    card.className = 'persona-card';
-    card.dataset.id = p.id;
-    card.innerHTML = `
-      <span class="persona-emoji">${p.emoji}</span>
-      <div class="persona-info">
-        <div class="persona-name">${p.name}</div>
-        <div class="persona-role">${p.role}</div>
-      </div>
-    `;
-    card.addEventListener('click', () => selectPersona(p));
-    personaList.appendChild(card);
-  });
-}
-
-function selectPersona(p) {
-  if (activePersona?.id === p.id) return;
-  activePersona = p;
-  history = [];
-
-  // Update sidebar active state
-  document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
-  document.querySelector(`.persona-card[data-id="${p.id}"]`).classList.add('active');
-
-  // Switch views
-  welcomeScreen.style.display = 'none';
-  chatView.style.display = 'flex';
-  chatView.style.flexDirection = 'column';
-  chatView.style.flex = '1';
-  chatView.style.minHeight = '0';
-
-  // Update header
-  document.getElementById('activeEmoji').textContent = p.emoji;
-  document.getElementById('activeName').textContent = p.name;
-  document.getElementById('activeRole').textContent = p.role;
-  document.getElementById('activeDesc').textContent = p.description;
-
-  // Clear messages
-  messagesEl.innerHTML = '';
-  appendSystemMsg(`— Now talking with ${p.name} ${p.emoji} —`);
-
-  // Enable input
-  inputEl.disabled = false;
-  sendBtn.disabled = false;
+// ── Mode switch ──
+function switchMode(m) {
+  mode = m;
+  const isCouncil = m === 'council';
+  document.getElementById('tabChat').classList.toggle('active', !isCouncil);
+  document.getElementById('tabCouncil').classList.toggle('active', isCouncil);
+  chatModeEl.style.display   = isCouncil ? 'none' : 'flex';
+  councilModeEl.style.display = isCouncil ? 'flex' : 'none';
+  sidebarHint.style.display  = isCouncil ? '' : 'none';
+  sidebarLabel.textContent   = isCouncil ? 'Select' : 'Personas';
+  inputEl.placeholder = isCouncil
+    ? 'Ask the council… (Enter to send)'
+    : 'Type a message… (Enter to send, Shift+Enter for newline)';
+  inputEl.classList.toggle('council-input', isCouncil);
+  sendBtn.classList.toggle('council-send', isCouncil);
+  renderSidebar();
+  if (isCouncil) updateCouncilInput(); else updateChatInput();
   inputEl.focus();
 }
 
-function appendSystemMsg(text) {
-  const el = document.createElement('div');
-  el.style.cssText = 'text-align:center;font-size:0.72rem;color:var(--text-dim);padding:4px 0;';
-  el.textContent = text;
-  messagesEl.appendChild(el);
-  scrollBottom();
+function updateChatInput() {
+  const ok = !!activePersona && !chatSending;
+  inputEl.disabled = !ok;
+  sendBtn.disabled = !ok;
+}
+function updateCouncilInput() {
+  const ok = councilSelected.size > 0 && !councilSending;
+  inputEl.disabled = !ok;
+  sendBtn.disabled = !ok;
 }
 
-function appendMessage(role, name, text) {
+// ── Sidebar ──
+function renderSidebar() {
+  personaListEl.innerHTML = '';
+  allPersonas.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'persona-card';
+    card.dataset.id = p.id;
+    if (mode === 'council') {
+      card.classList.add('council-card');
+      if (councilSelected.has(p.id)) card.classList.add('selected');
+      card.innerHTML = `
+        <span class="persona-emoji">${p.emoji}</span>
+        <div class="persona-info">
+          <div class="persona-name">${p.name}</div>
+          <div class="persona-role">${p.role}</div>
+        </div>
+        <span class="check-badge">✓</span>
+      `;
+      card.addEventListener('click', () => {
+        if (councilSelected.has(p.id)) {
+          if (councilSelected.size === 1) return;
+          councilSelected.delete(p.id);
+          card.classList.remove('selected');
+        } else {
+          councilSelected.add(p.id);
+          card.classList.add('selected');
+        }
+        updateCouncilInput();
+      });
+    } else {
+      if (activePersona?.id === p.id) card.classList.add('active');
+      card.innerHTML = `
+        <span class="persona-emoji">${p.emoji}</span>
+        <div class="persona-info">
+          <div class="persona-name">${p.name}</div>
+          <div class="persona-role">${p.role}</div>
+        </div>
+      `;
+      card.addEventListener('click', () => selectChatPersona(p));
+    }
+    personaListEl.appendChild(card);
+  });
+}
+
+// ── Chat ──
+function selectChatPersona(p) {
+  if (activePersona?.id === p.id) return;
+  activePersona = p;
+  chatHistory = [];
+  document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.persona-card[data-id="${p.id}"]`)?.classList.add('active');
+  chatWelcome.style.display = 'none';
+  Object.assign(chatViewEl.style, { display: 'flex', flexDirection: 'column', flex: '1', minHeight: '0' });
+  document.getElementById('activeEmoji').textContent = p.emoji;
+  document.getElementById('activeName').textContent  = p.name;
+  document.getElementById('activeRole').textContent  = p.role;
+  document.getElementById('activeDesc').textContent  = p.description;
+  messagesEl.innerHTML = '';
+  appendSysMsg(messagesEl, `— ${p.name} ${p.emoji} —`);
+  updateChatInput();
+  inputEl.focus();
+}
+
+function appendSysMsg(container, text) {
+  const el = document.createElement('div');
+  el.style.cssText = 'text-align:center;font-size:0.7rem;color:var(--text-dim);padding:4px 0;';
+  el.textContent = text;
+  container.appendChild(el);
+  scrollTo(container);
+}
+
+function appendChatMsg(role, name, text) {
   const wrap = document.createElement('div');
   wrap.className = `msg ${role}`;
   const label = document.createElement('div');
@@ -435,89 +465,133 @@ function appendMessage(role, name, text) {
   wrap.appendChild(label);
   wrap.appendChild(bubble);
   messagesEl.appendChild(wrap);
-  scrollBottom();
-  return wrap;
+  scrollTo(messagesEl);
 }
 
-function showTyping() {
+function showTyping(container, id) {
   const el = document.createElement('div');
   el.className = 'typing';
-  el.id = 'typingIndicator';
+  el.id = id;
   el.innerHTML = '<span></span><span></span><span></span>';
-  messagesEl.appendChild(el);
-  scrollBottom();
+  container.appendChild(el);
+  scrollTo(container);
 }
-function removeTyping() {
-  document.getElementById('typingIndicator')?.remove();
-}
+function removeTyping(id) { document.getElementById(id)?.remove(); }
+function scrollTo(el) { requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; }); }
 
-function scrollBottom() {
-  requestAnimationFrame(() => { messagesEl.scrollTop = messagesEl.scrollHeight; });
-}
-
-async function send() {
-  if (sending || !activePersona) return;
+async function sendChat() {
+  if (chatSending || !activePersona) return;
   const text = inputEl.value.trim();
   if (!text) return;
-
-  inputEl.value = '';
-  inputEl.style.height = 'auto';
-  sending = true;
-  sendBtn.disabled = true;
-  inputEl.disabled = true;
-
-  appendMessage('user', 'You', text);
-  showTyping();
-
-  // Build request
-  const body = {
-    persona_id: activePersona.id,
-    message: text,
-    conversation_history: history.slice()
-  };
-
+  inputEl.value = ''; inputEl.style.height = 'auto';
+  chatSending = true; updateChatInput();
+  appendChatMsg('user', 'You', text);
+  showTyping(messagesEl, 'typingChat');
   try {
     const r = await fetch(`${API}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ persona_id: activePersona.id, message: text, conversation_history: chatHistory.slice() })
     });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({}));
-      throw new Error(err.detail || `HTTP ${r.status}`);
-    }
+    if (!r.ok) { const e = await r.json().catch(()=>{}); throw new Error(e?.detail || `HTTP ${r.status}`); }
     const data = await r.json();
-    removeTyping();
-    appendMessage('ai', `${data.emoji} ${data.persona_name}`, data.response);
-
-    // Update history
-    history.push({ role: 'user', content: text });
-    history.push({ role: 'assistant', content: data.response });
-    // Keep last 20 turns
-    if (history.length > 40) history = history.slice(-40);
-
+    removeTyping('typingChat');
+    appendChatMsg('ai', `${data.emoji} ${data.persona_name}`, data.response);
+    chatHistory.push({ role: 'user', content: text }, { role: 'assistant', content: data.response });
+    if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40);
   } catch (e) {
-    removeTyping();
+    removeTyping('typingChat');
     showToast(`Error: ${e.message}`);
   } finally {
-    sending = false;
-    sendBtn.disabled = false;
-    inputEl.disabled = false;
-    inputEl.focus();
+    chatSending = false; updateChatInput(); inputEl.focus();
   }
 }
 
-// ── Input handling ──
-inputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    send();
+// ── Council ──
+async function sendCouncil() {
+  if (councilSending || councilSelected.size === 0) return;
+  const text = inputEl.value.trim();
+  if (!text) return;
+  inputEl.value = ''; inputEl.style.height = 'auto';
+  councilSending = true; updateCouncilInput();
+  councilWelcome.style.display = 'none';
+
+  const round = document.createElement('div');
+  round.className = 'council-round';
+  const qLabel = document.createElement('div');
+  qLabel.className = 'council-question-label';
+  qLabel.textContent = 'You';
+  const qBubble = document.createElement('div');
+  qBubble.className = 'council-question';
+  qBubble.textContent = text;
+  round.appendChild(qLabel);
+  round.appendChild(qBubble);
+
+  const voicesGrid = document.createElement('div');
+  voicesGrid.className = 'council-voices';
+  const selectedPersonas = allPersonas.filter(p => councilSelected.has(p.id));
+  const cardMap = {};
+  selectedPersonas.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'voice-card';
+    card.innerHTML = `
+      <div class="voice-card-header">
+        <span class="voice-emoji">${p.emoji}</span>
+        <div><div class="voice-name">${p.name}</div><div class="voice-role">${p.role}</div></div>
+      </div>
+      <div class="voice-body">
+        <div class="voice-skeleton"></div>
+        <div class="voice-skeleton"></div>
+        <div class="voice-skeleton"></div>
+      </div>
+    `;
+    voicesGrid.appendChild(card);
+    cardMap[p.id] = card;
+  });
+  round.appendChild(voicesGrid);
+  councilLogEl.appendChild(round);
+  scrollTo(councilLogEl);
+
+  try {
+    const r = await fetch(`${API}/api/council`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, persona_ids: [...councilSelected] })
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>{}); throw new Error(e?.detail || `HTTP ${r.status}`); }
+    const data = await r.json();
+    data.voices.forEach(v => {
+      const card = cardMap[v.persona_id];
+      if (!card) return;
+      const bodyEl = card.querySelector('.voice-body');
+      if (v.error) {
+        card.classList.add('error-card');
+        bodyEl.innerHTML = `<div class="voice-error">⚠ ${v.error}</div>`;
+      } else {
+        card.classList.add('loaded');
+        bodyEl.textContent = v.response;
+      }
+    });
+    roundCount++;
+    roundCountEl.textContent = roundCount;
+    scrollTo(councilLogEl);
+  } catch (e) {
+    Object.values(cardMap).forEach(card => {
+      if (!card.classList.contains('loaded')) {
+        card.classList.add('error-card');
+        card.querySelector('.voice-body').innerHTML = `<div class="voice-error">⚠ ${e.message}</div>`;
+      }
+    });
+    showToast(`Council error: ${e.message}`);
+  } finally {
+    councilSending = false; updateCouncilInput(); inputEl.focus();
   }
-});
-inputEl.addEventListener('input', () => {
-  inputEl.style.height = 'auto';
-  inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
-});
+}
+
+// ── Input ──
+function send() { if (mode === 'chat') sendChat(); else sendCouncil(); }
+inputEl.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+inputEl.addEventListener('input', () => { inputEl.style.height = 'auto'; inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px'; });
 sendBtn.addEventListener('click', send);
 
 // ── Toast ──
@@ -529,7 +603,6 @@ function showToast(msg) {
   toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
 }
 
-// ── Go ──
 init();
 </script>
 </body>
