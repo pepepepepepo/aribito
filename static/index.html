@@ -309,6 +309,7 @@ let councilSelected = new Set();
 let councilSending = false;
 let chatSending = false;
 let roundCount = 0;
+let councilHistory = []; // [{message, voices:[{persona_id,persona_name,emoji,role,response}]}]
 
 const personaListEl  = document.getElementById('personaList');
 const sidebarHint    = document.getElementById('sidebarHint');
@@ -556,7 +557,11 @@ async function sendCouncil() {
     const r = await fetch(`${API}/api/council`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, persona_ids: [...councilSelected] })
+      body: JSON.stringify({
+        message: text,
+        persona_ids: [...councilSelected],
+        history: councilHistory
+      })
     });
     if (!r.ok) { const e = await r.json().catch(()=>{}); throw new Error(e?.detail || `HTTP ${r.status}`); }
     const data = await r.json();
@@ -572,6 +577,8 @@ async function sendCouncil() {
         bodyEl.textContent = v.response;
       }
     });
+    // Accumulate history for next round
+    councilHistory.push({ message: text, voices: data.voices });
     roundCount++;
     roundCountEl.textContent = roundCount;
     scrollTo(councilLogEl);

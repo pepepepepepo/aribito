@@ -31,11 +31,6 @@ class ChatResponse(BaseModel):
 
 # ── Council (parallel multi-persona) ──
 
-class CouncilMessage(BaseModel):
-    message: str
-    persona_ids: Optional[List[str]] = None  # None = all personas
-
-
 class CouncilVoice(BaseModel):
     persona_id: str
     persona_name: str
@@ -43,6 +38,18 @@ class CouncilVoice(BaseModel):
     role: str
     response: str
     error: Optional[str] = None
+
+
+class CouncilHistoryRound(BaseModel):
+    """One round of council: the user message + all voices that responded."""
+    message: str
+    voices: List[CouncilVoice]
+
+
+class CouncilMessage(BaseModel):
+    message: str
+    persona_ids: Optional[List[str]] = None  # None = all personas
+    history: Optional[List[CouncilHistoryRound]] = []  # previous rounds
 
 
 class CouncilResponse(BaseModel):

@@ -22,7 +22,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from models import PersonaInfo, ChatMessage, ChatResponse, CouncilMessage, CouncilResponse, CouncilVoice
+from models import PersonaInfo, ChatMessage, ChatResponse, CouncilMessage, CouncilResponse, CouncilVoice, CouncilHistoryRound
 from core.persona_loader import list_personas, get_persona, build_system_prompt
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
@@ -132,10 +132,39 @@ async def council(req: CouncilMessage):
                 error="Persona data not found",
             )
         system_prompt = build_system_prompt(data)
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": req.message},
-        ]
+        messages = [{"role": "system", "content": system_prompt}]
+
+        # Inject previous rounds: own responses as assistant, others as context note
+        for round_ in (req.history or []):
+            messages.append({"role": "user", "content": round_.message})
+            my_voice = next(
+                (v for v in round_.voices if v.persona_id == pid and v.response and not v.error),
+                None,
+            )
+            if my_voice:
+                messages.append({"role": "assistant", "content": my_voice.response})
+            else:
+                # Placeholder so the turn pair stays balanced
+                messages.append({"role": "assistant", "content": "(no response)"})
+
+        # Build current user message, appending last round's other-voices as context
+        current_message = req.message
+        if req.history:
+            last_round = req.history[-1]
+            others = [
+                v for v in last_round.voices
+                if v.persona_id != pid and v.response and not v.error
+            ]
+            if others:
+                context_lines = "\n".join(
+                    f"{v.emoji} {v.persona_name}: {v.response}" for v in others
+                )
+                current_message = (
+                    f"{req.message}\n\n"
+                    f"[Other council members said in the previous round:\n{context_lines}]"
+                )
+
+        messages.append({"role": "user", "content": current_message})
         try:
             async with httpx.AsyncClient(timeout=90.0) as client:
                 resp = await client.post(
