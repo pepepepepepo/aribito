@@ -8,14 +8,17 @@ Endpoints:
   POST /api/chat         — chat with a persona (Ollama backend)
   POST /api/council      — all personas respond in parallel
 
-Requirements: Ollama running locally with a model available.
-Default model: gemma3:4b (change via OLLAMA_MODEL env var)
+Council uses a two-phase architecture:
+  Phase 1 (Think): 3x THINK_MODEL in parallel → structured thought packets (non-verbal)
+  Phase 2 (Voice): 3x VOICE_MODEL in parallel → each persona speaks using own + others' thought
 """
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List
 import asyncio
+import json
 import os
+import re
 
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -25,8 +28,11 @@ from fastapi.staticfiles import StaticFiles
 from models import PersonaInfo, ChatMessage, ChatResponse, CouncilMessage, CouncilResponse, CouncilVoice, CouncilHistoryRound
 from core.persona_loader import list_personas, get_persona, build_system_prompt
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gemma3:4b")
+OLLAMA_URL  = os.environ.get("OLLAMA_URL",  "http://localhost:11434")
+THINK_MODEL = os.environ.get("THINK_MODEL", "qwen3:1.7b")    # lightweight — internal reasoning
+VOICE_MODEL = os.environ.get("VOICE_MODEL", "qwen3.5:9b")   # quality     — articulated speech
+# Legacy single-model fallback for /api/chat
+CHAT_MODEL  = os.environ.get("CHAT_MODEL",  VOICE_MODEL)
 
 
 @asynccontextmanager
@@ -82,7 +88,7 @@ async def chat(msg: ChatMessage):
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
                 f"{OLLAMA_URL}/api/chat",
-                json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
+                json={"model": CHAT_MODEL, "messages": messages, "stream": False},
             )
             resp.raise_for_status()
             result = resp.json()
@@ -95,7 +101,7 @@ async def chat(msg: ChatMessage):
         raise HTTPException(status_code=500, detail=str(e))
 
     reply = result.get("message", {}).get("content", "")
-    model_used = result.get("model", OLLAMA_MODEL)
+    model_used = result.get("model", CHAT_MODEL)
 
     return ChatResponse(
         persona_name=data.get("name", ""),
@@ -108,7 +114,7 @@ async def chat(msg: ChatMessage):
 
 @app.post("/api/council", response_model=CouncilResponse)
 async def council(req: CouncilMessage):
-    """Send the same message to multiple personas in parallel via asyncio.gather."""
+    """Two-phase council: Think (e2b, non-verbal) → Voice (e4b, articulated)."""
     all_personas = list_personas()
 
     if req.persona_ids:
@@ -119,61 +125,130 @@ async def council(req: CouncilMessage):
     if not targets:
         raise HTTPException(status_code=404, detail="No matching personas found")
 
-    async def ask_one(persona_info: PersonaInfo) -> CouncilVoice:
+    # ── Phase 1: Think ────────────────────────────────────────────────────────
+    # Each persona reasons internally using THINK_MODEL → structured JSON packet
+
+    async def think_one(persona_info: PersonaInfo) -> dict:
         pid = persona_info.id
         data = get_persona(pid)
         if data is None:
-            return CouncilVoice(
-                persona_id=pid,
-                persona_name=persona_info.name,
-                emoji=persona_info.emoji,
-                role=persona_info.role,
-                response="",
-                error="Persona data not found",
-            )
-        system_prompt = build_system_prompt(data)
-        messages = [{"role": "system", "content": system_prompt}]
+            return {"persona_id": pid, "persona_name": persona_info.name,
+                    "emoji": persona_info.emoji, "error": "Persona data not found"}
 
-        # Inject previous rounds: own responses as assistant, others as context note
+        system_prompt = build_system_prompt(data)
+        per_think_model = data.get("think_model", THINK_MODEL)
+        think_instruction = (
+            "You are in your internal thinking phase. Do NOT write a response yet.\n"
+            "Output ONLY a JSON object (no prose, no markdown) with:\n"
+            '{"stance": "agree|disagree|neutral|questioning|moved|uncertain",\n'
+            ' "concepts": ["2-4 key ideas you are focused on"],\n'
+            ' "emotion": {"<label>": <0.0-1.0>, ...},\n  // 2-3 dimensions\n'
+            ' "core_insight": "one sentence: what you most want to express"}'
+        )
+
+        messages = [{"role": "system", "content": system_prompt + "\n\n" + think_instruction}]
         for round_ in (req.history or []):
             messages.append({"role": "user", "content": round_.message})
             my_voice = next(
                 (v for v in round_.voices if v.persona_id == pid and v.response and not v.error),
                 None,
             )
-            if my_voice:
-                messages.append({"role": "assistant", "content": my_voice.response})
-            else:
-                # Placeholder so the turn pair stays balanced
-                messages.append({"role": "assistant", "content": "(no response)"})
+            messages.append({"role": "assistant",
+                             "content": my_voice.response if my_voice else "(no response)"})
+        messages.append({"role": "user", "content": req.message})
 
-        # Build current user message, appending last round's other-voices as context
-        current_message = req.message
-        if req.history:
-            last_round = req.history[-1]
-            others = [
-                v for v in last_round.voices
-                if v.persona_id != pid and v.response and not v.error
-            ]
-            if others:
-                context_lines = "\n".join(
-                    f"{v.emoji} {v.persona_name}: {v.response}" for v in others
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    f"{OLLAMA_URL}/api/chat",
+                    json={"model": per_think_model, "messages": messages, "stream": False},
                 )
-                current_message = (
-                    f"{req.message}\n\n"
-                    f"[Other council members said in the previous round:\n{context_lines}]"
-                )
+                resp.raise_for_status()
+                raw = resp.json().get("message", {}).get("content", "{}")
+            # Strip <think>...</think> tags (qwen3 reasoning traces)
+            raw = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
+            packet = json.loads(match.group()) if match else {}
+        except Exception as e:
+            packet = {"stance": "neutral", "concepts": [], "emotion": {}, "core_insight": str(e)}
 
-        messages.append({"role": "user", "content": current_message})
+        packet["persona_id"]   = pid
+        packet["persona_name"] = data.get("name", pid)
+        packet["emoji"]        = data.get("emoji", "🤖")
+        return packet
+
+    thought_results = await asyncio.gather(*[think_one(p) for p in targets],
+                                           return_exceptions=True)
+    thoughts: list[dict] = [
+        t if isinstance(t, dict) else {"persona_id": targets[i].id, "error": str(t)}
+        for i, t in enumerate(thought_results)
+    ]
+
+    # ── Phase 2: Voice ────────────────────────────────────────────────────────
+    # Each persona articulates using VOICE_MODEL, informed by own + others' thought packets
+
+    async def voice_one(persona_info: PersonaInfo, own: dict, others: list[dict]) -> CouncilVoice:
+        pid = persona_info.id
+        data = get_persona(pid)
+        if data is None:
+            return CouncilVoice(persona_id=pid, persona_name=persona_info.name,
+                                emoji=persona_info.emoji, role=persona_info.role,
+                                response="", error="Persona data not found")
+
+        system_prompt = build_system_prompt(data)
+
+        # Non-verbal signals from other council members
+        others_signal = "\n".join(
+            f"- {o.get('emoji','🤖')} {o.get('persona_name','?')}: "
+            f"stance={o.get('stance','?')}, "
+            f"emotion={o.get('emotion',{})}, "
+            f"core_insight=\"{o.get('core_insight','')}\""
+            for o in others if not o.get("error")
+        )
+        voice_context = (
+            f"[Your internal thought]\n"
+            f"  stance: {own.get('stance','?')}\n"
+            f"  core_insight: {own.get('core_insight','')}\n"
+            f"  emotion: {own.get('emotion',{})}\n"
+            f"  concepts: {', '.join(own.get('concepts', []))}\n"
+        )
+        if others_signal:
+            voice_context += f"\n[Non-verbal signals from the other council members]\n{others_signal}\n"
+        voice_context += "\nNow speak — in your own voice and character."
+
+        messages = [{"role": "system", "content": system_prompt}]
+        for round_ in (req.history or []):
+            messages.append({"role": "user", "content": round_.message})
+            my_voice = next(
+                (v for v in round_.voices if v.persona_id == pid and v.response and not v.error),
+                None,
+            )
+            messages.append({"role": "assistant",
+                             "content": my_voice.response if my_voice else "(no response)"})
+        messages.append({"role": "user", "content": req.message + "\n\n" + voice_context})
+
         try:
             async with httpx.AsyncClient(timeout=90.0) as client:
                 resp = await client.post(
                     f"{OLLAMA_URL}/api/chat",
-                    json={"model": OLLAMA_MODEL, "messages": messages, "stream": False},
+                    json={
+                        "model": VOICE_MODEL,
+                        "messages": messages,
+                        "stream": False,
+                        "think": False,  # disable thinking mode (qwen3 family)
+                        "options": {
+                            "stop": ["<|endoftext|>", "<|im_start|>", "<|im_end|>"]
+                        },
+                    },
                 )
                 resp.raise_for_status()
-                result = resp.json()
-            reply = result.get("message", {}).get("content", "")
+                reply = resp.json().get("message", {}).get("content", "")
+                # Strip <think>...</think> tags (qwen3/qwen3.5 reasoning traces)
+                reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL).strip()
+                # Strip special tokens that leak from some models (e.g. <|endoftext|><|im_start|>user …)
+                reply = re.sub(r"<\|[a-z_]+\|>.*", "", reply, flags=re.DOTALL).strip()
+                # Strip *meta-annotation* lines (model narrating its own instructions)
+                reply = re.sub(r"\*[^*]{0,80}\*\s*$", "", reply, flags=re.MULTILINE).strip()
             return CouncilVoice(
                 persona_id=pid,
                 persona_name=data.get("name", ""),
@@ -187,18 +262,24 @@ async def council(req: CouncilMessage):
                 persona_name=data.get("name", pid),
                 emoji=data.get("emoji", "🤖"),
                 role=data.get("role", ""),
-                response="",
-                error=str(e),
+                response="", error=str(e),
             )
 
-    voices = await asyncio.gather(*[ask_one(p) for p in targets])
-    model_used = OLLAMA_MODEL
+    voice_tasks = [
+        voice_one(
+            targets[i],
+            thoughts[i],
+            [t for j, t in enumerate(thoughts) if j != i],
+        )
+        for i in range(len(targets))
+    ]
+    voices = await asyncio.gather(*voice_tasks)
 
     return CouncilResponse(
         message=req.message,
         voices=list(voices),
         timestamp=datetime.now(timezone.utc).isoformat(),
-        model=model_used,
+        model=f"think:{THINK_MODEL} / voice:{VOICE_MODEL}",
     )
 
 
