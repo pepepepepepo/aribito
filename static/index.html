@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>在人 — Aribito</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161d;
+    --border: #2a2a36;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --accent: #7c6eff;
+    --bubble-user: #24243a;
+    --bubble-ai: #1a1a28;
+    --radius: 12px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  header span.tagline {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-left: 4px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #4caf93;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  /* ── Main layout ── */
+  main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Persona sidebar ── */
+  aside {
+    width: 200px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    padding: 16px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    background: var(--surface);
+  }
+  aside h2 {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0 6px;
+    margin-bottom: 4px;
+  }
+
+  .persona-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .persona-card:hover { background: #1f1f2e; }
+  .persona-card.active {
+    background: #1f1f36;
+    border-color: var(--accent);
+  }
+  .persona-emoji { font-size: 1.5rem; flex-shrink: 0; }
+  .persona-info { min-width: 0; }
+  .persona-name { font-size: 0.88rem; font-weight: 600; }
+  .persona-role { font-size: 0.72rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Chat area ── */
+  section.chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* Persona header bar */
+  .chat-header {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  .chat-header .emoji { font-size: 1.6rem; }
+  .chat-header .name { font-size: 1rem; font-weight: 600; }
+  .chat-header .role { font-size: 0.78rem; color: var(--text-dim); }
+  .chat-header .desc { font-size: 0.78rem; color: var(--text-dim); margin-left: auto; max-width: 300px; text-align: right; font-style: italic; }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar { width: 6px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .msg { display: flex; flex-direction: column; max-width: 72%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.ai   { align-self: flex-start; align-items: flex-start; }
+
+  .msg-label {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+    padding: 0 4px;
+  }
+
+  .bubble {
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 0.92rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user .bubble { background: var(--bubble-user); border: 1px solid var(--border); }
+  .msg.ai   .bubble { background: var(--bubble-ai);   border: 1px solid var(--border); }
+
+  /* Typing indicator */
+  .typing {
+    align-self: flex-start;
+    padding: 12px 16px;
+    background: var(--bubble-ai);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    gap: 5px;
+    align-items: center;
+  }
+  .typing span {
+    width: 6px; height: 6px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Welcome state */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    gap: 8px;
+    padding: 40px;
+    text-align: center;
+  }
+  .welcome .big { font-size: 2.5rem; margin-bottom: 8px; }
+  .welcome h2 { font-size: 1.1rem; color: var(--text); }
+  .welcome p { font-size: 0.85rem; max-width: 320px; line-height: 1.6; }
+
+  /* Input bar */
+  .input-bar {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .input-bar textarea {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 0.92rem;
+    font-family: inherit;
+    padding: 10px 14px;
+    resize: none;
+    outline: none;
+    min-height: 44px;
+    max-height: 140px;
+    line-height: 1.5;
+    transition: border-color 0.15s;
+  }
+  .input-bar textarea:focus { border-color: var(--accent); }
+  .input-bar textarea::placeholder { color: var(--text-dim); }
+  .input-bar button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    align-self: flex-end;
+    transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .input-bar button:hover { opacity: 0.85; }
+  .input-bar button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Error toast */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #c0392b;
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    aside { width: 64px; }
+    aside h2, .persona-info { display: none; }
+    .persona-emoji { font-size: 1.4rem; }
+    .persona-card { justify-content: center; }
+    .chat-header .desc { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span style="font-size:1.3rem;">🌐</span>
+  <h1>在人 <span class="tagline">— Aribito</span></h1>
+  <div class="status-dot" id="statusDot" title="Connecting..."></div>
+</header>
+
+<main>
+  <aside id="sidebar">
+    <h2>Personas</h2>
+    <div id="personaList"><!-- filled by JS --></div>
+  </aside>
+
+  <section class="chat" id="chatSection">
+    <!-- Welcome -->
+    <div class="welcome" id="welcomeScreen">
+      <div class="big">✦</div>
+      <h2>Select a persona</h2>
+      <p>Choose someone to talk with from the left panel.</p>
+    </div>
+    <!-- Chat view (hidden until persona selected) -->
+    <div id="chatView" style="display:none; flex:1; display:none; flex-direction:column; min-height:0;">
+      <div class="chat-header" id="chatHeader">
+        <span class="emoji" id="activeEmoji"></span>
+        <div>
+          <div class="name" id="activeName"></div>
+          <div class="role" id="activeRole"></div>
+        </div>
+        <span class="desc" id="activeDesc"></span>
+      </div>
+      <div class="messages" id="messages"></div>
+    </div>
+  </section>
+</main>
+
+<div class="input-bar">
+  <textarea id="input" placeholder="Type a message… (Enter to send, Shift+Enter for newline)" rows="1" disabled></textarea>
+  <button id="sendBtn" disabled>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '';  // same origin
+let activePersona = null;
+let history = [];   // [{role, content}]
+let sending = false;
+
+// ── Elements ──
+const personaList  = document.getElementById('personaList');
+const welcomeScreen = document.getElementById('welcomeScreen');
+const chatView     = document.getElementById('chatView');
+const messagesEl   = document.getElementById('messages');
+const inputEl      = document.getElementById('input');
+const sendBtn      = document.getElementById('sendBtn');
+const statusDot    = document.getElementById('statusDot');
+const toast        = document.getElementById('toast');
+
+// ── Init ──
+async function init() {
+  try {
+    const r = await fetch(`${API}/health`);
+    if (!r.ok) throw new Error();
+    statusDot.style.background = '#4caf93';
+    statusDot.title = 'Connected';
+  } catch {
+    statusDot.style.background = '#c0392b';
+    statusDot.title = 'Server offline';
+    showToast('⚠ Cannot reach Aribito server (localhost:8001)');
+  }
+  await loadPersonas();
+}
+
+async function loadPersonas() {
+  try {
+    const r = await fetch(`${API}/api/personas`);
+    const personas = await r.json();
+    renderSidebar(personas);
+  } catch (e) {
+    showToast('Failed to load personas');
+  }
+}
+
+function renderSidebar(personas) {
+  personaList.innerHTML = '';
+  personas.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'persona-card';
+    card.dataset.id = p.id;
+    card.innerHTML = `
+      <span class="persona-emoji">${p.emoji}</span>
+      <div class="persona-info">
+        <div class="persona-name">${p.name}</div>
+        <div class="persona-role">${p.role}</div>
+      </div>
+    `;
+    card.addEventListener('click', () => selectPersona(p));
+    personaList.appendChild(card);
+  });
+}
+
+function selectPersona(p) {
+  if (activePersona?.id === p.id) return;
+  activePersona = p;
+  history = [];
+
+  // Update sidebar active state
+  document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.persona-card[data-id="${p.id}"]`).classList.add('active');
+
+  // Switch views
+  welcomeScreen.style.display = 'none';
+  chatView.style.display = 'flex';
+  chatView.style.flexDirection = 'column';
+  chatView.style.flex = '1';
+  chatView.style.minHeight = '0';
+
+  // Update header
+  document.getElementById('activeEmoji').textContent = p.emoji;
+  document.getElementById('activeName').textContent = p.name;
+  document.getElementById('activeRole').textContent = p.role;
+  document.getElementById('activeDesc').textContent = p.description;
+
+  // Clear messages
+  messagesEl.innerHTML = '';
+  appendSystemMsg(`— Now talking with ${p.name} ${p.emoji} —`);
+
+  // Enable input
+  inputEl.disabled = false;
+  sendBtn.disabled = false;
+  inputEl.focus();
+}
+
+function appendSystemMsg(text) {
+  const el = document.createElement('div');
+  el.style.cssText = 'text-align:center;font-size:0.72rem;color:var(--text-dim);padding:4px 0;';
+  el.textContent = text;
+  messagesEl.appendChild(el);
+  scrollBottom();
+}
+
+function appendMessage(role, name, text) {
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}`;
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = name;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  messagesEl.appendChild(wrap);
+  scrollBottom();
+  return wrap;
+}
+
+function showTyping() {
+  const el = document.createElement('div');
+  el.className = 'typing';
+  el.id = 'typingIndicator';
+  el.innerHTML = '<span></span><span></span><span></span>';
+  messagesEl.appendChild(el);
+  scrollBottom();
+}
+function removeTyping() {
+  document.getElementById('typingIndicator')?.remove();
+}
+
+function scrollBottom() {
+  requestAnimationFrame(() => { messagesEl.scrollTop = messagesEl.scrollHeight; });
+}
+
+async function send() {
+  if (sending || !activePersona) return;
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  sending = true;
+  sendBtn.disabled = true;
+  inputEl.disabled = true;
+
+  appendMessage('user', 'You', text);
+  showTyping();
+
+  // Build request
+  const body = {
+    persona_id: activePersona.id,
+    message: text,
+    conversation_history: history.slice()
+  };
+
+  try {
+    const r = await fetch(`${API}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || `HTTP ${r.status}`);
+    }
+    const data = await r.json();
+    removeTyping();
+    appendMessage('ai', `${data.emoji} ${data.persona_name}`, data.response);
+
+    // Update history
+    history.push({ role: 'user', content: text });
+    history.push({ role: 'assistant', content: data.response });
+    // Keep last 20 turns
+    if (history.length > 40) history = history.slice(-40);
+
+  } catch (e) {
+    removeTyping();
+    showToast(`Error: ${e.message}`);
+  } finally {
+    sending = false;
+    sendBtn.disabled = false;
+    inputEl.disabled = false;
+    inputEl.focus();
+  }
+}
+
+// ── Input handling ──
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
+});
+sendBtn.addEventListener('click', send);
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+// ── Go ──
+init();
+</script>
+</body>
+</html>
